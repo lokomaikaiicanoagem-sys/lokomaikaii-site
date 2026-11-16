@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Cofre · Lokomaikaii</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f2f6f7; color: #12303a; }
+  main { max-width: 440px; margin: 0 auto; padding: 28px 20px 40px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  p { font-size: 16px; line-height: 1.45; margin: 8px 0; }
+  .cartao { background: #fff; border-radius: 16px; padding: 20px; margin-top: 18px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 16px; }
+  textarea { width: 100%; min-height: 96px; font-size: 16px; padding: 12px; border: 2px solid #b9cdd3; border-radius: 12px; font-family: ui-monospace, Menlo, monospace; resize: vertical; }
+  textarea:focus { outline: none; border-color: #0d7f8f; }
+  button { width: 100%; margin-top: 14px; padding: 16px; font-size: 18px; font-weight: 700; color: #fff; background: #0d7f8f; border: 0; border-radius: 12px; }
+  button:disabled { background: #9db8be; }
+  .aviso { font-size: 14px; color: #47626b; }
+  .ok { background: #e3f6ea; border-radius: 12px; padding: 16px; font-size: 18px; font-weight: 600; color: #14572c; }
+  .erro { background: #fdecea; border-radius: 12px; padding: 14px; color: #8a1f17; margin-top: 12px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🔐 Cofre da Lokomaikaii</h1>
+  <p id="sub">Conferindo o link…</p>
+
+  <div class="cartao" id="form" hidden>
+    <label for="v" id="titulo">Cole a chave aqui</label>
+    <textarea id="v" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Toque aqui e cole"></textarea>
+    <button id="b" type="button">Guardar no cofre</button>
+    <p class="aviso">A chave vai direto para o cofre do sistema. Ela não aparece em conversa nenhuma e este link só funciona uma vez.</p>
+    <div class="erro" id="erro" hidden></div>
+  </div>
+
+  <div class="ok" id="ok" hidden>✅ Guardada no cofre. Pode fechar esta página e avisar "feito" no chat.</div>
+  <div class="erro" id="fim" hidden>Este link já foi usado ou venceu. Peça um link novo no chat.</div>
+</main>
+<script>
+(function () {
+  var API = 'https://gqvwqwimfkuthdsacdpp.supabase.co/functions/v1/cofre-guardar';
+  var codigo = (location.hash || '').replace('#', '').trim().toLowerCase();
+  var $ = function (id) { return document.getElementById(id); };
+  function chamar(corpo) {
+    return fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo) })
+      .then(function (r) { return r.json(); });
+  }
+  function acabou() { $('sub').hidden = true; $('form').hidden = true; $('fim').hidden = false; }
+  if (!codigo) { acabou(); return; }
+  chamar({ acao: 'ver', codigo: codigo }).then(function (d) {
+    if (!d || !d.ok) { acabou(); return; }
+    $('sub').textContent = 'Um passo só: colar e guardar.';
+    $('titulo').textContent = d.titulo || 'Cole a chave aqui';
+    $('form').hidden = false;
+  }).catch(function () { $('sub').textContent = 'Sem conexão. Recarregue a página.'; });
+  $('b').addEventListener('click', function () {
+    var v = $('v').value.trim();
+    $('erro').hidden = true;
+    if (!v) { $('erro').textContent = 'Cole a chave no campo acima.'; $('erro').hidden = false; return; }
+    $('b').disabled = true; $('b').textContent = 'Guardando…';
+    chamar({ acao: 'guardar', codigo: codigo, valor: v }).then(function (d) {
+      if (d && d.ok) { $('v').value = ''; $('form').hidden = true; $('sub').hidden = true; $('ok').hidden = false; return; }
+      $('erro').textContent = (d && d.motivo) ? d.motivo : 'Não deu certo. Tente de novo.';
+      $('erro').hidden = false; $('b').disabled = false; $('b').textContent = 'Guardar no cofre';
+    }).catch(function () {
+      $('erro').textContent = 'Sem conexão. Tente de novo.'; $('erro').hidden = false;
+      $('b').disabled = false; $('b').textContent = 'Guardar no cofre';
+    });
+  });
+})();
+</script>
+</body>
+</html>
